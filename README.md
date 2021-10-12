@@ -5,11 +5,11 @@ Diverse Tampermokey-script för att göra anpassningar i alma
 
 Anropar API på lib.kth.se:
 
-https://lib.kth.se/holdshelfno/api/v1/[userid]/[additionalID]/?token=[xxxxxxxxxxxxxx]"
+https://lib.kth.se/holdshelfno/api/v1/[userid]/[additionalID]"
 
-Ange alma user id(email utan "@kth.se): testtl
-Ange additional ID: 216-464-549-8
-Byt ut xxxx mot rätt token
+[userid]/[additionalID] hämtas från almasidan av scriptet 
+
+ex: testtl/216-464-549-8
 
 Exempel på svar:
 ```xml

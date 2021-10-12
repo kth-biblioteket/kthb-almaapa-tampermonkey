@@ -6,8 +6,8 @@
 // @author       Thomas Lind
 // @updateURL    https://github.com/kth-biblioteket/kthb-almaapa-tampermonkey/raw/main/almaapa.js
 // @downloadURL  https://github.com/kth-biblioteket/kthb-almaapa-tampermonkey/raw/main/almaapa.js
-// @match        https://eu01.alma.exlibrisgroup.com*
-// @match        https://kth-ch-psb.alma.exlibrisgroup.com*
+// @include        https://eu01.alma.exlibrisgroup.com*
+// @include        https://kth-ch-psb.alma.exlibrisgroup.com*
 // @grant        GM_xmlhttpRequest
 // @grant        GM_addStyle
 // @connect      lib.kth.se

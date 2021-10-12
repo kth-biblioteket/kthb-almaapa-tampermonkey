@@ -1,5 +1,7 @@
 ## Holdshelf-nummer
-Tampermonkey-script som ser till att det krypterade löpnumret som finns på varje slip på holdshelf också blir synligt i Alma
+Diverse Tampermokey-script för att göra anpassningar i alma
+
+### Se till att det krypterade löpnumret som finns på varje slip på holdshelf också blir synligt i Alma
 
 Anropar API på lib.kth.se:
 

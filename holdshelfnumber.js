@@ -1,19 +1,24 @@
 // ==UserScript==
-// @name         Hold Shelf Number
+// @name         Alma-apan
 // @namespace    http://tampermonkey.net/
-// @version      1.0.1
-// @description  Hold Shelf Number
+// @version      2.0.1
+// @description  Diverse addons för alma. Hold Shelf Number etc
 // @author       Thomas Lind
-// @include      https://eu01.alma.exlibrisgroup.com*
-// @include      https://kth-ch-psb.alma.exlibrisgroup.com*
+// @updateURL    https://github.com/kth-biblioteket/kthb-almaapa-tampermonkey/raw/main/almaapa.js
+// @downloadURL  https://github.com/kth-biblioteket/kthb-almaapa-tampermonkey/raw/main/almaapa.js
+// @match        https://eu01.alma.exlibrisgroup.com*
+// @match        https://kth-ch-psb.alma.exlibrisgroup.com*
 // @grant        GM_xmlhttpRequest
 // @grant        GM_addStyle
 // @connect      lib.kth.se
+// @connect      ref.lib.kth.se
+// @connect      kth-ch-psb.alma.exlibrisgroup.com
 // ==/UserScript==
 
 (function() {
     'use strict';
     /* globals $ */
+
     function handleError (err) {
         window.prompt('Ett fel uppstod!', err.message);
     }
@@ -36,6 +41,28 @@
         });
     }
 
+    function gettoken() {
+        return new Promise((resolve, reject) => {
+            GM_xmlhttpRequest({
+                method: "GET",
+                url: "https://" + window.location.hostname + "/internal/airapi/cloudapps/%21~expired-holdshelf/jwt",
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                onload: function(response) {
+                    if (response.status == 201 || response.status == 401) {
+                        reject(response.status);
+                    } else {
+                        resolve(response.responseText);
+                    }
+                },
+                onerror: function(error) {
+                    reject(error);
+                }
+            });
+        });
+    }
+
     function init () {
         var userid_encrypted
         var holdshelfnumber
@@ -51,16 +78,22 @@
                 hsselector = "#activeHoldShelfRequestsList";
             }
             //Se till att proceduren bara utförs en gång
-            processOnce(hsselector + ' .recordListContainer', function () {
+            processOnce(hsselector + ' .recordListContainer', async function () {
+                //Hämta almatoken
+                var d = new Date();
+                var almaAuthToken = await gettoken()
+                var almaAuthTokenjsonObj = JSON.parse (almaAuthToken)
+                d = new Date();
                 $(hsselector).find('.recordOuterContainer').each(function() {
                     var thiz = this;
-                    //Anropa api med userid och additional id som parametrar
+                    //Anropa holdshelfno api med userid och additional id som parametrar
                     GM_xmlhttpRequest ({
                         method: "GET",
-                        url: "https://lib.kth.se/holdshelfno/api/v1/" + $(this).find("[id*='prefferedIdprefferedId']").html().split('@')[0] + "/" + $(this).find("[id*='additionalIdadditionalId']").html() + "/?token=xxxxxxxxxxxx",
+                        url: "https://ref.lib.kth.se/holdshelfno/api/v1/" + $(this).find("[id*='prefferedIdprefferedId']").html().split('@')[0] + "/" + $(this).find("[id*='additionalIdadditionalId']").html(),
                         headers: {
                             'Accept': 'text/xml',
                             'Content-Type': 'text/xml',
+                            'Authorization': 'Bearer ' + almaAuthTokenjsonObj.jwt
                         },
                         onload: function(response) {
                             if (response.status == 201) {
@@ -111,6 +144,7 @@
                             }
                         },
                         onerror: function(error) {
+                            console.log(error);
                         }
                     });
                 });
@@ -121,6 +155,5 @@
         return true;
     }
 
-    //init();
     $(document).ajaxComplete(init);
 })();

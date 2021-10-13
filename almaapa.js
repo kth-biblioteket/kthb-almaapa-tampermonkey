@@ -45,7 +45,7 @@
         return new Promise((resolve, reject) => {
             GM_xmlhttpRequest({
                 method: "GET",
-                url: "https://" + window.location.hostname + "/internal/airapi/cloudapps/%21~expired-holdshelf/jwt",
+                url: "https://" + window.location.hostname + "/internal/airapi/cloudapps/%21~expired-holdshelf/jwt?_" + new Date().getTime(),
                 headers: {
                     'Content-Type': 'application/json',
                 },
@@ -89,7 +89,7 @@
                     //Anropa holdshelfno api med userid och additional id som parametrar
                     GM_xmlhttpRequest ({
                         method: "GET",
-                        url: "https://ref.lib.kth.se/holdshelfno/api/v1/" + $(this).find("[id*='prefferedIdprefferedId']").html().split('@')[0] + "/" + $(this).find("[id*='additionalIdadditionalId']").html(),
+                        url: "https://lib.kth.se/holdshelfno/api/v1/" + $(this).find("[id*='prefferedIdprefferedId']").html().split('@')[0] + "/" + $(this).find("[id*='additionalIdadditionalId']").html(),
                         headers: {
                             'Accept': 'text/xml',
                             'Content-Type': 'text/xml',

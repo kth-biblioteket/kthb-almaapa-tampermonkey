@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Alma-apan
 // @namespace    http://tampermonkey.net/
-// @version      2.0.2
+// @version      2.1.2
 // @description  Diverse addons för alma. Hold Shelf Number etc
 // @author       Thomas Lind
 // @updateURL    https://github.com/kth-biblioteket/kthb-almaapa-tampermonkey/raw/main/almaapa.js

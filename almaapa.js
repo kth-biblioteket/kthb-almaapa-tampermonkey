@@ -89,7 +89,7 @@
                     //Anropa holdshelfno api med userid och additional id som parametrar
                     GM_xmlhttpRequest ({
                         method: "GET",
-                        url: "https://lib.kth.se/holdshelfno/api/v1/" + $(this).find("[id*='prefferedIdprefferedId']").html().split('@')[0] + "/" + $(this).find("[id*='additionalIdadditionalId']").html(),
+                        url: "https://api.lib.kth.se/almatools/v1/holdshelfno/" + $(this).find("[id*='prefferedIdprefferedId']").html().split('@')[0] + "/" + $(this).find("[id*='additionalIdadditionalId']").html(),
                         headers: {
                             'Accept': 'text/xml',
                             'Content-Type': 'text/xml',

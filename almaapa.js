@@ -135,7 +135,7 @@
                                     </span>
                                     <span class="spacer_after_1em" dir="auto">
                                        <span dir="auto" class="labelField">`
-                                          + userid_encrypted + holdshelfnumber +
+                                          + userid_encrypted + '-' + holdshelfnumber +
                                        `</span>
                                     </span>
                                     </div>`

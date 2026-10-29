@@ -37,8 +37,8 @@
             GM_xmlhttpRequest({
                 method: "GET",
                 url: "https://" + window.location.hostname +
-                    "/internal/airapi/cloudapps/%21~expired-holdshelf/jwt?_=" +
-                    new Date().getTime(),
+                     "/internal/airapi/cloudapps/%21~expired-holdshelf/jwt?_=" +
+                     new Date().getTime(),
                 headers: {
                     'Content-Type': 'application/json'
                 },
@@ -84,7 +84,7 @@
 
                 // Holdshelf Number (t.ex. qljfon-001) som hämtats från API:t.
                 // Faller tillbaka på additionalId om den inte hunnit laddas.
-                const additionalId =
+                const holdshelfNumber =
                     $(this).find(".kthb-hsnumber").first().text().trim() ||
                     $(this)
                         .find("[id*='additionalIdadditionalId']")
@@ -97,7 +97,7 @@
                     $(this).find("a").first().text().trim();
 
                 rows.push({
-                    additionalId,
+                    holdshelfNumber,
                     title: title.substring(0, 20)
                 });
             });
@@ -108,7 +108,7 @@
             const today = new Date().toLocaleDateString('sv-SE'); // ÅÅÅÅ-MM-DD
 
             const content = rows.map(r =>
-                `${r.additionalId}
+`${r.holdshelfNumber}
 ${r.title}
 --------------------`
             ).join('\n\n');

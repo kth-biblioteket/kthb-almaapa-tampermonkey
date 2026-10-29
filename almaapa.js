@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Alma-apan 2
 // @namespace    http://tampermonkey.net/
-// @version      4.1
+// @version      4.2
 // @description  Diverse addons för Alma. Hold Shelf Number + utskriftslista
 // @author       Thomas Lind
 // @updateURL    https://github.com/kth-biblioteket/kthb-almaapa-tampermonkey/raw/main/almaapa.js
@@ -25,11 +25,14 @@
     const PAPER_WIDTH_MM = 80;
     const PAPER_MARGIN_MM = 2;
 
-    function processOnce(selector, fn) {
-        if (!$(selector).hasClass('kthb-processed')) {
-            fn();
-            $(selector).addClass('kthb-processed');
-        }
+    const ADDITIONAL_ID_SELECTOR = "[id*='additionalIdadditionalId']";
+    const PREFERRED_ID_SELECTOR = "[id*='prefferedIdprefferedId']";
+
+    function escapeHtml(text) {
+        return text
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
     }
 
     function gettoken() {
@@ -56,82 +59,63 @@
         });
     }
 
-    function addExportButton(hsselector) {
+    function printList(hsselector) {
 
-        if ($("#kthb-export-button").length) {
-            return;
-        }
+        const rows = [];
 
-        const button = $(`
-            <button
-                id="kthb-export-button"
-                type="button"
-                class="btn btn-secondary"
-                title="Prints only Holdshelf Number and Title (receipt format)"
-                style="margin:10px;">
-                Print Holdshelf Numbers &amp; Titles
-            </button>
-        `);
+        document.querySelectorAll(hsselector + ' .recordOuterContainer').forEach(function (container) {
 
-        button.on("click", function (e) {
+            // Holdshelf Number (t.ex. qljfon-001) som hämtats från API:t.
+            // Faller tillbaka på additionalId om den inte hunnit laddas.
+            const hsEl = container.querySelector('.kthb-hsnumber');
+            const idEl = container.querySelector(ADDITIONAL_ID_SELECTOR);
+            const holdshelfNumber =
+                (hsEl && hsEl.textContent.trim()) ||
+                (idEl && idEl.textContent.trim()) ||
+                '';
 
-            e.preventDefault();
-            e.stopPropagation();
+            const titleEl =
+                container.querySelector('.recordTitle') ||
+                container.querySelector('.briefTitle') ||
+                container.querySelector('a');
+            const title = titleEl ? titleEl.textContent.trim() : '';
 
-            const rows = [];
-
-            $(hsselector).find('.recordOuterContainer').each(function () {
-
-                // Holdshelf Number (t.ex. qljfon-001) som hämtats från API:t.
-                // Faller tillbaka på additionalId om den inte hunnit laddas.
-                const holdshelfNumber =
-                    $(this).find(".kthb-hsnumber").first().text().trim() ||
-                    $(this)
-                        .find("[id*='additionalIdadditionalId']")
-                        .text()
-                        .trim();
-
-                let title =
-                    $(this).find(".recordTitle").first().text().trim() ||
-                    $(this).find(".briefTitle").first().text().trim() ||
-                    $(this).find("a").first().text().trim();
-
-                rows.push({
-                    holdshelfNumber,
-                    title: title.substring(0, 20)
-                });
+            rows.push({
+                holdshelfNumber,
+                title: title.substring(0, 20)
             });
+        });
 
-            const heading = document.title === 'Active Hold Shelf Items'
-                ? 'Active Hold Shelf'
-                : 'Expired Hold Shelf';
-            const today = new Date().toLocaleDateString('sv-SE'); // ÅÅÅÅ-MM-DD
+        const heading = document.title === 'Active Hold Shelf Items'
+            ? 'Active Hold Shelf'
+            : 'Expired Hold Shelf';
+        const today = new Date().toLocaleDateString('sv-SE'); // ÅÅÅÅ-MM-DD
 
-            const content = rows.map(r =>
+        const content = rows.map(r =>
 `${r.holdshelfNumber}
 ${r.title}
 --------------------`
-            ).join('\n\n');
+        ).join('\n\n');
 
-            // Eget popup-fönster, tillräckligt stort för att förhandsgranskningen ska synas
-            // Centrera över Alma-fönstret (screenX/Y gäller även vid flera skärmar)
-            const popupW = 900;
-            const popupH = 700;
-            const popupLeft = Math.round(window.screenX + (window.outerWidth - popupW) / 2);
-            const popupTop = Math.round(window.screenY + (window.outerHeight - popupH) / 2);
+        // Centrera över Alma-fönstret (screenX/Y gäller även vid flera skärmar)
+        const popupW = 900;
+        const popupH = 700;
+        const popupLeft = Math.round(window.screenX + (window.outerWidth - popupW) / 2);
+        const popupTop = Math.round(window.screenY + (window.outerHeight - popupH) / 2);
 
-            const printWindow = window.open(
-                '',
-                'kthbPrint',
-                `popup=yes,width=${popupW},height=${popupH},left=${popupLeft},top=${popupTop}`
-            );
+        // Eget popup-fönster, tillräckligt stort för att förhandsgranskningen ska synas
+        const printWindow = window.open(
+            '',
+            'kthbPrint',
+            `popup=yes,width=${popupW},height=${popupH},left=${popupLeft},top=${popupTop}`
+        );
 
-            if (!printWindow) {
-                alert('Popup blockerades. Tillåt popup-fönster för Alma.');
-                return;
-            }
+        if (!printWindow) {
+            alert('Popup blockerades. Tillåt popup-fönster för Alma.');
+            return;
+        }
 
-            printWindow.document.write(`
+        printWindow.document.write(`
 <html>
 <head>
 <title>Hold Shelf</title>
@@ -159,84 +143,77 @@ body {
 }
 </style>
 </head>
-<body><div class="heading">${heading}</div><div>${today}</div><div>====================</div>\n\n${content}</body>
+<body><div class="heading">${heading}</div><div>${today}</div><div>====================</div>\n\n${escapeHtml(content)}</body>
 </html>
-            `);
+        `);
 
-            printWindow.document.close();
+        printWindow.document.close();
 
-            // Sätts före print() eftersom print() blockerar tills dialogen stängs
-            printWindow.onafterprint = function () {
-                printWindow.close();
-            };
+        // Sätts före print() eftersom print() blockerar tills dialogen stängs
+        printWindow.onafterprint = function () {
+            printWindow.close();
+        };
 
-            setTimeout(() => {
-                printWindow.focus();
-                printWindow.print();
-            }, 300);
-        });
-
-        $(hsselector + " .recordListContainer").prepend(button);
+        setTimeout(() => {
+            printWindow.focus();
+            printWindow.print();
+        }, 300);
     }
 
-    async function init() {
+    function addExportButton(hsselector, listContainer) {
 
-        let hsselector;
-
-        if (
-            document.title !== 'Expired Hold Shelf Items' &&
-            document.title !== 'Active Hold Shelf Items'
-        ) {
-            return false;
+        if (document.getElementById('kthb-export-button')) {
+            return;
         }
 
-        if (document.title === 'Expired Hold Shelf Items') {
-            hsselector = "#expiredHoldShelfRequestsList";
+        const button = document.createElement('button');
+        button.id = 'kthb-export-button';
+        button.type = 'button';
+        button.className = 'btn btn-secondary';
+        button.title = 'Prints only Holdshelf Number and Title (receipt format)';
+        button.style.margin = '10px';
+        button.textContent = 'Print Holdshelf Numbers & Titles';
+
+        button.addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            printList(hsselector);
+        });
+
+        listContainer.prepend(button);
+    }
+
+    function fetchHoldshelfNumber(container, jwt) {
+
+        const idEl = container.querySelector(ADDITIONAL_ID_SELECTOR);
+        const prefEl = container.querySelector(PREFERRED_ID_SELECTOR);
+
+        if (!idEl || !prefEl) {
+            return;
         }
 
-        if (document.title === 'Active Hold Shelf Items') {
-            hsselector = "#activeHoldShelfRequestsList";
-        }
+        // Elementet som Holdshelf Number läggs till i (tre nivåer upp från additionalId)
+        const target = idEl.parentElement.parentElement.parentElement;
 
-        processOnce(hsselector + ' .recordListContainer', async function () {
+        GM_xmlhttpRequest({
+            method: "GET",
+            url:
+                "https://api.lib.kth.se/almatools/v1/holdshelfno/" +
+                prefEl.innerHTML.split('@')[0] +
+                "/" +
+                idEl.innerHTML,
 
-            addExportButton(hsselector);
+            headers: {
+                'Accept': 'text/xml',
+                'Content-Type': 'text/xml',
+                'Authorization': 'Bearer ' + jwt
+            },
 
-            let userid_encrypted;
-            let holdshelfnumber;
-            let holdshelfnumberhtml;
+            onload: function (response) {
 
-            const almaAuthToken = await gettoken();
-            const almaAuthTokenjsonObj = JSON.parse(almaAuthToken);
+                if (response.status === 201) {
 
-            $(hsselector).find('.recordOuterContainer').each(function () {
-
-                const thiz = this;
-
-                GM_xmlhttpRequest({
-                    method: "GET",
-                    url:
-                        "https://api.lib.kth.se/almatools/v1/holdshelfno/" +
-                        $(this)
-                            .find("[id*='prefferedIdprefferedId']")
-                            .html()
-                            .split('@')[0] +
-                        "/" +
-                        $(this)
-                            .find("[id*='additionalIdadditionalId']")
-                            .html(),
-
-                    headers: {
-                        'Accept': 'text/xml',
-                        'Content-Type': 'text/xml',
-                        'Authorization': 'Bearer ' + almaAuthTokenjsonObj.jwt
-                    },
-
-                    onload: function (response) {
-
-                        if (response.status === 201) {
-
-                            const html = `
+                    target.insertAdjacentHTML('beforeend', `
 <div class="col col-xs-12 marTopBottom3">
     <span class="fieldName">Holdshelf Number:</span>
     <span class="spacer_after_1em" dir="auto">
@@ -244,67 +221,33 @@ body {
             Fel!!
         </span>
     </span>
-</div>`;
+</div>`);
 
-                            $(thiz)
-                                .find("[id*='additionalIdadditionalId']")
-                                .parent()
-                                .parent()
-                                .parent()
-                                .append(html);
+                    return;
+                }
 
-                            return;
-                        }
+                const xmldoc = new DOMParser().parseFromString(
+                    response.responseText,
+                    "text/xml"
+                );
 
-                        const parser = new DOMParser();
-                        const xmldoc = parser.parseFromString(
-                            response.responseText,
-                            "text/xml"
-                        );
+                const textOf = function (path) {
+                    const node = xmldoc.evaluate(
+                        path,
+                        xmldoc,
+                        null,
+                        XPathResult.FIRST_ORDERED_NODE_TYPE,
+                        null
+                    ).singleNodeValue;
+                    return node && node.childNodes[0]
+                        ? node.childNodes[0].nodeValue
+                        : '';
+                };
 
-                        let path = "/holdshelfnumber/holdshelfnumber";
+                const holdshelfnumber = textOf("/holdshelfnumber/holdshelfnumber");
+                const userid_encrypted = textOf("/holdshelfnumber/userid_encrypted");
 
-                        const holdshelfnumberxml =
-                            xmldoc.evaluate(
-                                path,
-                                xmldoc,
-                                null,
-                                XPathResult.ANY_TYPE,
-                                null
-                            );
-
-                        let result =
-                            holdshelfnumberxml.iterateNext();
-
-                        while (result) {
-                            holdshelfnumber =
-                                result.childNodes[0].nodeValue;
-                            result =
-                                holdshelfnumberxml.iterateNext();
-                        }
-
-                        path = "/holdshelfnumber/userid_encrypted";
-
-                        const useridxml =
-                            xmldoc.evaluate(
-                                path,
-                                xmldoc,
-                                null,
-                                XPathResult.ANY_TYPE,
-                                null
-                            );
-
-                        result =
-                            useridxml.iterateNext();
-
-                        while (result) {
-                            userid_encrypted =
-                                result.childNodes[0].nodeValue;
-                            result =
-                                useridxml.iterateNext();
-                        }
-
-                        holdshelfnumberhtml = `
+                target.insertAdjacentHTML('beforeend', `
 <div class="col col-xs-12 marTopBottom3">
     <span class="fieldName">
         Holdshelf Number:
@@ -314,26 +257,57 @@ body {
             ${userid_encrypted}-${holdshelfnumber}
         </span>
     </span>
-</div>`;
+</div>`);
+            },
 
-                        $(thiz)
-                            .find("[id*='additionalIdadditionalId']")
-                            .parent()
-                            .parent()
-                            .parent()
-                            .append(holdshelfnumberhtml);
-                    },
-
-                    onerror: function (error) {
-                        console.log(error);
-                    }
-                });
-            });
+            onerror: function (error) {
+                console.log(error);
+            }
         });
-
-        return true;
     }
 
-    $(document).ajaxComplete(init);
+    async function init() {
+
+        let hsselector;
+
+        if (document.title === 'Expired Hold Shelf Items') {
+            hsselector = "#expiredHoldShelfRequestsList";
+        } else if (document.title === 'Active Hold Shelf Items') {
+            hsselector = "#activeHoldShelfRequestsList";
+        } else {
+            return;
+        }
+
+        const listContainer = document.querySelector(hsselector + ' .recordListContainer');
+
+        if (!listContainer || listContainer.classList.contains('kthb-processed')) {
+            return;
+        }
+
+        listContainer.classList.add('kthb-processed');
+
+        addExportButton(hsselector, listContainer);
+
+        try {
+            const almaAuthToken = await gettoken();
+            const jwt = JSON.parse(almaAuthToken).jwt;
+
+            document.querySelectorAll(hsselector + ' .recordOuterContainer').forEach(function (container) {
+                fetchHoldshelfNumber(container, jwt);
+            });
+        } catch (error) {
+            console.log(error);
+        }
+    }
+
+    // Ersätter jQuery:s ajaxComplete: kör init när sidan ändras (med liten fördröjning)
+    let timer = null;
+    const observer = new MutationObserver(function () {
+        clearTimeout(timer);
+        timer = setTimeout(init, 200);
+    });
+    observer.observe(document.documentElement, { childList: true, subtree: true });
+
+    init();
 
 })();

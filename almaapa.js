@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Alma-apan 2
 // @namespace    http://tampermonkey.net/
-// @version      4.2
+// @version      4.3
 // @description  Diverse addons för Alma. Hold Shelf Number + utskriftslista
 // @author       Thomas Lind
 // @updateURL    https://github.com/kth-biblioteket/kthb-almaapa-tampermonkey/raw/main/almaapa.js
@@ -121,7 +121,6 @@ ${r.title}
 <title>Hold Shelf</title>
 <style>
 @page {
-    size: ${PAPER_WIDTH_MM}mm auto;
     margin: ${PAPER_MARGIN_MM}mm;
 }
 
@@ -130,8 +129,13 @@ html, body {
     padding: 0;
 }
 
+/* Fluid bredd: följer pappret om det är smalare, och blir aldrig bredare
+   än en kvittorulle även om drivrutinen saknas och sidan blir A4/Letter */
 body {
-    width: ${PAPER_WIDTH_MM - 2 * PAPER_MARGIN_MM}mm;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: ${PAPER_WIDTH_MM - 2 * PAPER_MARGIN_MM}mm;
+    overflow-wrap: anywhere;
     font-family: monospace;
     font-size: 10pt;
     white-space: pre-wrap;
